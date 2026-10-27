@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 from helpers import *
+
 """
 Gradient descent
 """
+
+
 def compute_gradient(y, tx, w):
     """Computes the gradient at w.
 
@@ -14,11 +17,15 @@ def compute_gradient(y, tx, w):
     Returns:
         An array of shape (2, ) (same shape as w), containing the gradient of the loss at w.
     """
-    e = y-tx@w
-    return -(1/y.shape[0]) * (tx.T@e)
+    e = y - tx @ w
+    return -(1 / y.shape[0]) * (tx.T @ e)
+
+
 """
 MSE
 """
+
+
 def compute_loss(y, tx, w):
     """Calculate the loss using either MSE or MAE.
 
@@ -30,13 +37,16 @@ def compute_loss(y, tx, w):
     Returns:
         the value of the loss (a scalar), corresponding to the input parameters w.
     """
-    e = y - tx@w
-    loss = (1/(2*y.shape[0]))*(e@e)
+    e = y - tx @ w
+    loss = (1 / (2 * y.shape[0])) * (e @ e)
     return loss
+
 
 """
 Linear regression using gradient descent
 """
+
+
 def mean_squared_error_gd(y, tx, initial_w, max_iters, gamma):
     """Linear regression using gradient descent.
 
@@ -101,14 +111,18 @@ def mean_squared_error_sgd(y, tx, initial_w, max_iters, gamma):
         for batch_y, batch_tx in batch_iter(y, tx, batch_size=1, num_batches=1):
             grad = compute_stoch_gradient(batch_y, batch_tx, w)
             w = w - gamma * grad
-        loss = compute_loss(y, tx, w)
-        print(
-            "SGD iter. {bi}/{ti}: loss={l}, w0={w0}, w1={w1}".format(
-                bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]
+        # Full loss does not affect the update. Compute it only sometimes so
+        # long runs stay usable. The returned loss is always the final one.
+        if n_iter % 1000 == 0 or n_iter == max_iters - 1:
+            loss = compute_loss(y, tx, w)
+            print(
+                "SGD iter. {bi}/{ti}: loss={l}, w0={w0}, w1={w1}".format(
+                    bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]
+                )
             )
-        )
 
     return w, compute_loss(y, tx, w)
+
 
 def least_squares(y, tx):
     """Least squares regression using normal equations.
@@ -127,6 +141,7 @@ def least_squares(y, tx):
     loss = compute_loss(y, tx, w)
     return w, loss
 
+
 def ridge_regression(y, tx, lambda_):
     """Ridge regression using the closed-form solution.
 
@@ -138,6 +153,7 @@ def ridge_regression(y, tx, lambda_):
     w = np.linalg.solve(a, b)
     loss = compute_loss(y, tx, w)
     return w, loss
+
 
 def sigmoid(t):
     """apply sigmoid function on t. σ(x) := (1 + e−x)−1
@@ -153,7 +169,8 @@ def sigmoid(t):
     >>> sigmoid(np.array([0.1, 0.1]))
     array([0.52497919, 0.52497919])
     """
-    return 1/(1+np.exp(-t))
+    return 1 / (1 + np.exp(-t))
+
 
 def calculate_loss(y, tx, w):
     """compute the cost by negative log likelihood.
@@ -177,9 +194,10 @@ def calculate_loss(y, tx, w):
 
     # ***************************************************
     sigm = sigmoid(tx.dot(w))
-    L = (-1/y.shape[0])*np.sum((y*np.log(sigm))+(1-y)*np.log(1-sigm))
+    L = (-1 / y.shape[0]) * np.sum((y * np.log(sigm)) + (1 - y) * np.log(1 - sigm))
     return L
     # ***************************************************
+
 
 def calculate_gradient(y, tx, w):
     """compute the gradient of loss.
@@ -202,8 +220,9 @@ def calculate_gradient(y, tx, w):
            [ 0.51712843]])
     """
     # ***************************************************
-    return tx.T@(sigmoid(tx@w)-y)/y.shape[0]
+    return tx.T @ (sigmoid(tx @ w) - y) / y.shape[0]
     # ***************************************************
+
 
 def learning_by_gradient_descent(y, tx, w, gamma):
     """
@@ -232,13 +251,14 @@ def learning_by_gradient_descent(y, tx, w, gamma):
            [0.24828716]])
     """
     # ***************************************************
-    grad = calculate_gradient(y,tx,w)
-    loss = calculate_loss(y,tx,w)
-    w =w-gamma*grad
+    grad = calculate_gradient(y, tx, w)
+    loss = calculate_loss(y, tx, w)
+    w = w - gamma * grad
     # ***************************************************
-    return loss,w
+    return loss, w
 
-def logistic_regression(y, tx, w, max_iters,gamma):
+
+def logistic_regression(y, tx, w, max_iters, gamma):
     """
     Logistic regression using gradient descent.
 
@@ -266,8 +286,7 @@ def logistic_regression(y, tx, w, max_iters,gamma):
         losses.append(loss)
         if len(losses) > 1 and np.abs(losses[-1] - losses[-2]) < threshold:
             break
-    return w,calculate_loss(y, tx, w)
-
+    return w, calculate_loss(y, tx, w)
 
 
 def penalized_logistic_regression(y, tx, w, lambda_):
@@ -296,15 +315,14 @@ def penalized_logistic_regression(y, tx, w, lambda_):
            [ 0.57712843]])
     """
     # ***************************************************
-    # return loss, gradient, and Hessian: 
+    # return loss, gradient, and Hessian:
     prod = tx.dot(w)
     # L = np.sum(-y@prod+np.log(1+np.exp(prod)))/y.shape[0]+(lambda_/2)*np.norm(w,ord=2)**2
-    L = calculate_loss(y,tx,w)
-    grad = calculate_gradient(y,tx,w)+2*lambda_*w
-    
-    # ***************************************************
-    return L,grad
+    L = calculate_loss(y, tx, w)
+    grad = calculate_gradient(y, tx, w) + 2 * lambda_ * w
 
+    # ***************************************************
+    return L, grad
 
 
 def learning_by_penalized_gradient(y, tx, w, gamma, lambda_):
@@ -339,13 +357,13 @@ def learning_by_penalized_gradient(y, tx, w, gamma, lambda_):
     """
     # ***************************************************
     # return loss, gradient:
-    loss , grad = penalized_logistic_regression(y,tx,w,lambda_)
+    loss, grad = penalized_logistic_regression(y, tx, w, lambda_)
     # update w:
-    w = w-gamma*grad
+    w = w - gamma * grad
     return loss, w
 
 
-def reg_logistic_regression(y, tx,lambda_,w, max_iters, gamma):
+def reg_logistic_regression(y, tx, lambda_, w, max_iters, gamma):
     """
     Regularized logistic regression using gradient descent with L2 penalty.
 
@@ -375,5 +393,4 @@ def reg_logistic_regression(y, tx,lambda_,w, max_iters, gamma):
         losses.append(loss)
         if len(losses) > 1 and np.abs(losses[-1] - losses[-2]) < threshold:
             break
-    return w,calculate_loss(y, tx, w)
-    
+    return w, calculate_loss(y, tx, w)
