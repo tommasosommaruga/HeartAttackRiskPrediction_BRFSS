@@ -124,12 +124,54 @@ def mean_diff_by_class(x, y, col_mask=None, max_missing=0.3):
     return cols, gap / scale
 
 
-def drop_summary(rates, constant, high_missing):
-    """List of (col, missing_rate, reason) for columns to drop."""
-    rows = []
-    for j in np.flatnonzero(constant | high_missing):
-        reason = "constant" if constant[j] else "high_missing"
-        if constant[j] and high_missing[j]:
-            reason = "constant+high_missing"
-        rows.append((int(j), float(rates[j]), reason))
-    return rows
+def michd_rate(y, masks):
+    """MICHD rate for each boolean row mask."""
+    return np.array([float(np.mean(y[mask] == 1)) if mask.any() else np.nan for mask in masks])
+
+
+def plot_rate_bars(ax, labels, rates, title, overall=None):
+    """Bar chart of MICHD rates with an optional overall dashed line."""
+    ax.bar(np.arange(len(labels)), rates, color="C0", alpha=0.85)
+    if overall is not None:
+        ax.axhline(overall, color="k", linestyle="--", lw=1)
+    ax.set_xticks(np.arange(len(labels)))
+    ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=8)
+    ax.set_ylabel("MICHD rate")
+    ax.set_title(title)
+    return ax
+
+
+def plot_rate_line(ax, xs, rates, title, label=None, overall=None):
+    """Line plot of MICHD rate against a numeric or ordered axis."""
+    ax.plot(xs, rates, marker="o", ms=3, label=label)
+    if overall is not None:
+        ax.axhline(overall, color="k", linestyle="--", lw=1)
+    ax.set_ylabel("MICHD rate")
+    ax.set_title(title)
+    ax.grid(True, alpha=0.3)
+    return ax
+
+
+def plot_hist_by_class(ax, values, y, bins, title, xlabel):
+    """Overlapping density histograms of one column inside each class."""
+    for label, name, color in ((-1, "no MICHD", "C0"), (1, "MICHD", "C3")):
+        rows = (y == label) & np.isfinite(values)
+        ax.hist(values[rows], bins=bins, density=True, alpha=0.45, color=color, label=name)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("density")
+    ax.set_title(title)
+    ax.legend()
+    return ax
+
+
+def plot_selected_sources(ax, source_names, top=20, title="levels kept per raw column"):
+    """Horizontal bars: how many selected one hot levels come from each raw column."""
+    names, counts = np.unique(source_names, return_counts=True)
+    order = np.argsort(-counts)[:top][::-1]
+    ax.barh(np.arange(order.size), counts[order], color="C0")
+    ax.set_yticks(np.arange(order.size))
+    ax.set_yticklabels(names[order], fontsize=8)
+    ax.set_xlabel("number of kept levels")
+    ax.set_title(title)
+    ax.grid(True, axis="x", alpha=0.3)
+    return ax

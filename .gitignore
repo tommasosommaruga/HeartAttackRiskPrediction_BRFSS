@@ -38,4 +38,9 @@ data/
 dataset/
 
 # Kaggle/AIcrowd submissions
+# Cross validation outputs
+pipeline_experiments.csv
+permutation_importance.csv
+
+# Submission CSVs (local only; do not commit)
 submissions/

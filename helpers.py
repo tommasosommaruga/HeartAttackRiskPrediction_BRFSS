@@ -71,6 +71,7 @@ def create_csv_submission(ids, y_pred, name):
         for r1, r2 in zip(ids, y_pred):
             writer.writerow({"Id": int(r1), "Prediction": int(r2)})
 
+
 def batch_iter(y, tx, batch_size=1, num_batches=1, shuffle=True):
     """
     Generate a minibatch iterator for a dataset.
