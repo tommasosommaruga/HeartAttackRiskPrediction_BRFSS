@@ -5,26 +5,9 @@
   "positive_class_cost": 2.0,
   "max_iters": 300,
   "l2_penalty": 1e-5,
-  "l1_penalty": 2e-4,
-  "high_missing_rate": 0.5,
+  "eps": 1e-12,
   "min_level_share": 0.01,
   "quantile_bins": 5,
-  "top_sources": 40,
   "top_onehot": 300,
-  "interaction_sources": 20,
-  "age_cutoff": 65,
-  "use_leak_columns": false,
-  "importance_experiments": ["codebook", "onehot"],
-  "experiments": [
-    "codebook",
-    "all_median_flags",
-    "low_missing_median_flags",
-    "missing_flags_only",
-    "missing_flags_top_sources",
-    "onehot",
-    "onehot_mi_top",
-    "onehot_l1",
-    "onehot_age_interactions",
-    "codebook_plus_onehot"
-  ]
+  "use_leak_columns": false
 }
