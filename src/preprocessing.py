@@ -5,11 +5,16 @@
     x_out = apply(data, other_rows, state)
 """
 
+import json
 import os
 
 import numpy as np
 
-DATA_DIR = os.path.join("data", "dataset")
+from helpers import load_csv_data
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(ROOT, "dataset")
+CONFIG_PATH = os.path.join(ROOT, "config", "experiments.json")
 
 SURVEY_COLUMNS = (
     "_STATE", "FMONTH", "IDATE", "IMONTH", "IDAY", "IYEAR", "DISPCODE", "SEQNO",
@@ -213,3 +218,66 @@ def apply(data, rows, state):
     matrix -= state["means"].astype(np.float32)
     matrix /= state["scales"].astype(np.float32)
     return matrix
+
+
+def read_config(path=CONFIG_PATH):
+    """Preprocessing settings (min_level_share, quantile_bins, top_onehot, ...)."""
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def load_raw(data_dir=DATA_DIR, cache=True):
+    """Raw CSV arrays, cached as raw_cache.npz in data_dir after the first call.
+
+    Output: x_train, x_test, y_train ({-1, 1}), train_ids, test_ids.
+    """
+    cache_file = os.path.join(data_dir, "raw_cache.npz")
+    if cache and os.path.exists(cache_file):
+        d = np.load(cache_file)
+        return d["x_train"], d["x_test"], d["y_train"], d["train_ids"], d["test_ids"]
+    if not os.path.exists(os.path.join(data_dir, "x_train.csv")):
+        raise FileNotFoundError("no x_train.csv in {!r}".format(data_dir))
+    x_train, x_test, y_train, train_ids, test_ids = load_csv_data(data_dir)
+    if cache:
+        np.savez(
+            cache_file, x_train=x_train, x_test=x_test, y_train=y_train,
+            train_ids=train_ids, test_ids=test_ids,
+        )
+    return x_train, x_test, y_train, train_ids, test_ids
+
+
+def get_data(data_dir=DATA_DIR, cfg=None, val_fraction=0.1, seed=42, sub_sample=False):
+    """Preprocessed train / val / test arrays, ready for any model.
+
+    The split is stratified. The pipeline (make_data -> fit -> apply) is
+    fitted on the train rows only, then applied to val and test.
+
+    Input: data_dir with x_train.csv, y_train.csv, x_test.csv; cfg dict
+    (default: config/experiments.json); val_fraction in [0, 1), with 0 all
+    labelled rows go to train and x_val, y_val are None; sub_sample keeps
+    1 labelled row out of 50 (quick tests).
+    Output: x_train (N_tr, D), y_train (N_tr,), x_val (N_va, D), y_val (N_va,),
+    x_test (N_te, D), test_ids (N_te,). Features are float32 without NaN,
+    labels are float in {0, 1}.
+    """
+    if cfg is None:
+        cfg = read_config()
+    x, x_test, y, _train_ids, test_ids = load_raw(data_dir)
+    if sub_sample:
+        x, y = x[::50], y[::50]
+    y01 = (y == 1).astype(float)
+
+    if val_fraction > 0:
+        fit_rows, val_rows = stratified_split(y01, val_fraction, np.random.default_rng(seed))
+    else:
+        fit_rows, val_rows = np.arange(y01.size), None
+
+    ensure_header(data_dir)
+    data = make_data(x, cfg)
+    state, x_train = fit(data, fit_rows, y01[fit_rows] == 1, cfg)
+    x_val = y_val = None
+    if val_rows is not None:
+        x_val, y_val = apply(data, val_rows, state), y01[val_rows]
+    test_data = make_data(x_test, cfg)
+    x_test = apply(test_data, np.arange(x_test.shape[0]), state)
+    return x_train, y01[fit_rows], x_val, y_val, x_test, test_ids

@@ -14,11 +14,9 @@ import numpy as np
 
 import src.model as model
 import src.preprocessing as prep
-from helpers import create_csv_submission, load_csv_data
+from helpers import create_csv_submission
 
-CONFIG_PATH = os.path.join("config", "experiments.json")
-DATA_DIR = os.path.join("data", "dataset")
-CACHE_PATH = os.path.join("data", "train_arrays.npz")
+CONFIG_PATH = prep.CONFIG_PATH
 RESULTS_PATH = "pipeline_experiments.csv"
 IMPORTANCE_PATH = "permutation_importance.csv"
 SUBMISSION_DIR = "submissions"
@@ -35,19 +33,15 @@ def read_json(path):
 
 
 def load_arrays():
-    """Training matrix and labels, cached as .npz after the first call."""
-    if os.path.exists(CACHE_PATH):
-        cached = np.load(CACHE_PATH)
-        return cached["x"], cached["y"]
-    x, _x_test, y, _train_ids, _test_ids = load_csv_data(DATA_DIR)
-    np.savez(CACHE_PATH, x=x, y=y)
+    """Training matrix and labels (cached by prep.load_raw)."""
+    x, _x_test, y, _train_ids, _test_ids = prep.load_raw()
     return x, y
 
 
 def load_test_arrays():
-    """Test ids and features (Id column dropped)."""
-    raw = np.genfromtxt(os.path.join(DATA_DIR, "x_test.csv"), delimiter=",", skip_header=1)
-    return raw[:, 0].astype(np.int64), raw[:, 1:]
+    """Test ids and features."""
+    _x, x_test, _y, _train_ids, test_ids = prep.load_raw()
+    return test_ids, x_test
 
 
 def fit_and_tune(data, train_rows, y, cfg, rng):

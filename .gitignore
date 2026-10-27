@@ -31,13 +31,12 @@ htmlcov/
 *.synctex.gz
 *.toc
 
-data
-data/
-
 # Project data (CSV files and the .npz cache)
 dataset/
 
-# Kaggle/AIcrowd submissions
+# Trained weights (local only)
+checkpoints/
+
 # Cross validation outputs
 pipeline_experiments.csv
 permutation_importance.csv

@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
+
 """
+A small multilayer perceptron written in pure NumPy.
 
 Building blocks:
     Linear -> BatchNorm1d -> ReLU  (repeated for each hidden layer) -> Linear
@@ -160,23 +161,15 @@ class MLP:
             bn.running_mean = state["bn_{}_mean".format(i)].copy()
             bn.running_var = state["bn_{}_var".format(i)].copy()
 
-    def save(self, path, meta=None):
+    def save(self, path):
         """Save weights and architecture to a .npz file."""
-        extra = {"meta_" + k: v for k, v in (meta or {}).items()}
         np.savez(
             path,
             input_dim=self.config["input_dim"],
             hidden_dims=np.array(self.config["hidden_dims"]),
             batch_norm=self.config["batch_norm"],
-            **self.state_dict(),
-            **extra
+            **self.state_dict()
         )
-
-    @staticmethod
-    def load_meta(path):
-        """The `meta` dict stored by save() (empty for older checkpoints)."""
-        d = np.load(path)
-        return {k[len("meta_"):]: d[k].item() for k in d.files if k.startswith("meta_")}
 
     @classmethod
     def load(cls, path):

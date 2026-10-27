@@ -15,7 +15,7 @@ class Adam:
         weight_decay: decoupled L2 penalty applied to the weights.
     """
 
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.0):
+    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8, weight_decay=0.5):
         self.params = list(params)
         self.lr = lr
         self.beta1, self.beta2 = betas

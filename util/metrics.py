@@ -33,22 +33,9 @@ def classification_metrics(probs, y, threshold=0.5):
 # Thresholds tried when the decision threshold is picked on validation
 THRESHOLD_GRID = np.round(np.arange(0.05, 0.96, 0.05), 2)
 
-# Names accepted by --threshold to pick it on validation, and the metric each one maximizes
-THRESHOLD_METRICS = {"best_f1": "f1", "best_bal_acc": "balanced_accuracy"}
 
-
-def threshold_table(probs, y, grid=THRESHOLD_GRID):
-    """Metrics for each threshold of the grid (list of dicts, with "threshold" and "pos_rate")."""
-    rows = []
-    for t in grid:
-        m = classification_metrics(probs, y, t)
-        m["threshold"] = t
-        m["pos_rate"] = np.mean(probs >= t)
-        rows.append(m)
-    return rows
-
-
-def best_threshold(probs, y, metric="f1", grid=THRESHOLD_GRID):
-    """Threshold of the grid that maximizes `metric`. Returns (threshold, metrics)."""
-    best = max(threshold_table(probs, y, grid), key=lambda r: r[metric])
-    return best["threshold"], best
+def best_threshold(probs, y, grid=THRESHOLD_GRID):
+    """Threshold of the grid that maximizes F1. Returns (threshold, metrics)."""
+    rows = [classification_metrics(probs, y, t) for t in grid]
+    best = max(range(len(grid)), key=lambda i: rows[i]["f1"])
+    return grid[best], rows[best]
