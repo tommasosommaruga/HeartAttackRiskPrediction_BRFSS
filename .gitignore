@@ -33,3 +33,9 @@ htmlcov/
 
 data
 data/
+
+# Project data (CSV files and the .npz cache)
+dataset/
+
+# Kaggle/AIcrowd submissions
+submissions/

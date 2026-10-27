@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-A small multilayer perceptron written in pure NumPy.
 
 Building blocks:
     Linear -> BatchNorm1d -> ReLU  (repeated for each hidden layer) -> Linear
 
-Training lives in train.py, the optimizers (Adam, Muon) in util/.
 """
 
 import numpy as np
@@ -16,23 +14,20 @@ class Param:
 
     Args:
         data: initial value of the parameter.
-        muon: True if Muon should update this parameter with orthogonalized
-            momentum (only meaningful for 2D hidden weight matrices).
     """
 
-    def __init__(self, data, muon=False):
+    def __init__(self, data):
         self.data = data
         self.grad = np.zeros_like(data)
-        self.muon = muon
 
 
 class Linear:
     """Fully connected layer: out = x @ W + b, with W of shape (in_dim, out_dim)."""
 
-    def __init__(self, in_dim, out_dim, rng, bias=True, muon=True):
+    def __init__(self, in_dim, out_dim, rng, bias=True):
         # He initialization, suited to ReLU activations
         w = rng.normal(0.0, np.sqrt(2.0 / in_dim), size=(in_dim, out_dim))
-        self.W = Param(w, muon=muon)
+        self.W = Param(w)
         self.b = Param(np.zeros(out_dim)) if bias else None
         self.x = None
 
@@ -71,12 +66,7 @@ class ReLU:
 
 
 class BatchNorm1d:
-    """Batch normalization over the batch dimension of a (N, D) input.
-
-    In training mode it normalizes with the statistics of the current batch
-    and updates running averages; in evaluation mode it uses the running
-    averages, so predictions do not depend on the batch composition.
-    """
+    """Batch normalization over the batch dimension of a (N, D) input."""
 
     def __init__(self, dim, momentum=0.1, eps=1e-5):
         self.gamma = Param(np.ones(dim))
@@ -126,18 +116,18 @@ class MLP:
     """
 
     def __init__(self, input_dim, hidden_dims, batch_norm=True, seed=42):
+        self.config = {"input_dim": input_dim, "hidden_dims": list(hidden_dims), "batch_norm": batch_norm}
         rng = np.random.default_rng(seed)
         self.layers = []
         prev = input_dim
         for h in hidden_dims:
-            # The bias is redundant when BatchNorm follows (beta plays its role)
+            # The bias is redundant when BatchNorm follows
             self.layers.append(Linear(prev, h, rng, bias=not batch_norm))
             if batch_norm:
                 self.layers.append(BatchNorm1d(h))
             self.layers.append(ReLU())
             prev = h
-        # Output layer: not a hidden matrix, so Muon leaves it to Adam
-        self.layers.append(Linear(prev, 1, rng, muon=False))
+        self.layers.append(Linear(prev, 1, rng))
 
     def forward(self, x, training=True):
         for layer in self.layers:
@@ -151,3 +141,63 @@ class MLP:
 
     def parameters(self):
         return [p for layer in self.layers for p in layer.parameters()]
+
+    def state_dict(self):
+        """Copy of everything learned: parameters and BatchNorm running stats."""
+        state = {"param_{}".format(i): p.data.copy() for i, p in enumerate(self.parameters())}
+        bns = [layer for layer in self.layers if isinstance(layer, BatchNorm1d)]
+        for i, bn in enumerate(bns):
+            state["bn_{}_mean".format(i)] = bn.running_mean.copy()
+            state["bn_{}_var".format(i)] = bn.running_var.copy()
+        return state
+
+    def load_state_dict(self, state):
+        """Restore the values returned by state_dict (on a model with the same shape)."""
+        for i, p in enumerate(self.parameters()):
+            p.data = state["param_{}".format(i)].copy()
+        bns = [layer for layer in self.layers if isinstance(layer, BatchNorm1d)]
+        for i, bn in enumerate(bns):
+            bn.running_mean = state["bn_{}_mean".format(i)].copy()
+            bn.running_var = state["bn_{}_var".format(i)].copy()
+
+    def save(self, path, meta=None):
+        """Save weights and architecture to a .npz file."""
+        extra = {"meta_" + k: v for k, v in (meta or {}).items()}
+        np.savez(
+            path,
+            input_dim=self.config["input_dim"],
+            hidden_dims=np.array(self.config["hidden_dims"]),
+            batch_norm=self.config["batch_norm"],
+            **self.state_dict(),
+            **extra
+        )
+
+    @staticmethod
+    def load_meta(path):
+        """The `meta` dict stored by save() (empty for older checkpoints)."""
+        d = np.load(path)
+        return {k[len("meta_"):]: d[k].item() for k in d.files if k.startswith("meta_")}
+
+    @classmethod
+    def load(cls, path):
+        """Rebuild a model saved with save()."""
+        d = np.load(path)
+        model = cls(int(d["input_dim"]), [int(h) for h in d["hidden_dims"]], bool(d["batch_norm"]))
+        model.load_state_dict(d)
+        return model
+
+    def predict_logits(self, x, batch_size=4096):
+        """Raw outputs (logits) for each row of x, in evaluation mode."""
+        logits = [
+            self.forward(x[i : i + batch_size], training=False)
+            for i in range(0, x.shape[0], batch_size)
+        ]
+        return np.concatenate(logits)
+
+    def predict_proba(self, x):
+        """Probability of the positive class for each row of x."""
+        return 1.0 / (1.0 + np.exp(-self.predict_logits(x)))
+
+    def predict_labels(self, x, threshold=0.5):
+        """Predictions in {-1, 1}, the format required by create_csv_submission."""
+        return np.where(self.predict_proba(x) >= threshold, 1, -1)
