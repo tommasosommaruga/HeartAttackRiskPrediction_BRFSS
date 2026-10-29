@@ -47,7 +47,9 @@ def fit_logistic(x, y01, weights, l2, max_iters, rng):
     """FISTA fit of weighted logistic regression with L2."""
     weights = weights.astype(np.float32)
     y01 = y01.astype(np.float32)
-    step = 1.0 / (0.25 * LIPSCHITZ_MARGIN * largest_curvature(x, weights, rng) + 2.0 * l2)
+    step = 1.0 / (
+        0.25 * LIPSCHITZ_MARGIN * largest_curvature(x, weights, rng) + 2.0 * l2
+    )
     theta = np.zeros(x.shape[1] + 1)
     rate = float(np.sum(weights * y01) / np.sum(weights))
     theta[0] = np.log(rate / (1.0 - rate))
@@ -55,7 +57,7 @@ def fit_logistic(x, y01, weights, l2, max_iters, rng):
     momentum = 1.0
     for _ in range(max_iters):
         moved = look - step * logistic_gradient(x, y01, weights, look, l2)
-        next_momentum = (1.0 + np.sqrt(1.0 + 4.0 * momentum ** 2)) / 2.0
+        next_momentum = (1.0 + np.sqrt(1.0 + 4.0 * momentum**2)) / 2.0
         look = moved + ((momentum - 1.0) / next_momentum) * (moved - theta)
         theta, momentum = moved, next_momentum
     return theta
@@ -96,7 +98,9 @@ def classification_scores(scores, y_pm1, threshold):
 
 def choose_threshold(scores, y_pm1):
     """Score cut that maximizes F1 (ties keep higher accuracy)."""
-    candidates = np.concatenate([np.quantile(scores, np.linspace(0.0, 1.0, 201)), [0.0]])
+    candidates = np.concatenate(
+        [np.quantile(scores, np.linspace(0.0, 1.0, 201)), [0.0]]
+    )
     best_threshold, best_f1, best_accuracy = 0.0, -1.0, -1.0
     for threshold in np.unique(candidates):
         metrics = classification_scores(scores, y_pm1, float(threshold))

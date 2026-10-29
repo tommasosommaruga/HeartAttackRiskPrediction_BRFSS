@@ -60,7 +60,9 @@ class DataLoader:
             yield self.dataset[order[b * self.batch_size : (b + 1) * self.batch_size]]
 
 
-def load_datasets(data_path=DATA_PATH, val_fraction=0.1, seed=42, sub_sample=False, cfg=None):
+def load_datasets(
+    data_path=DATA_PATH, val_fraction=0.1, seed=42, sub_sample=False, cfg=None
+):
     """Train / validation / test Datasets from prep.get_data.
 
     Returns:

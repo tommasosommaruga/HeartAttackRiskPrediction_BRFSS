@@ -1,4 +1,3 @@
-
 """
 A small multilayer perceptron written in pure NumPy.
 
@@ -117,7 +116,11 @@ class MLP:
     """
 
     def __init__(self, input_dim, hidden_dims, batch_norm=True, seed=42):
-        self.config = {"input_dim": input_dim, "hidden_dims": list(hidden_dims), "batch_norm": batch_norm}
+        self.config = {
+            "input_dim": input_dim,
+            "hidden_dims": list(hidden_dims),
+            "batch_norm": batch_norm,
+        }
         rng = np.random.default_rng(seed)
         self.layers = []
         prev = input_dim
@@ -145,7 +148,9 @@ class MLP:
 
     def state_dict(self):
         """Copy of everything learned: parameters and BatchNorm running stats."""
-        state = {"param_{}".format(i): p.data.copy() for i, p in enumerate(self.parameters())}
+        state = {
+            "param_{}".format(i): p.data.copy() for i, p in enumerate(self.parameters())
+        }
         bns = [layer for layer in self.layers if isinstance(layer, BatchNorm1d)]
         for i, bn in enumerate(bns):
             state["bn_{}_mean".format(i)] = bn.running_mean.copy()
@@ -175,7 +180,11 @@ class MLP:
     def load(cls, path):
         """Rebuild a model saved with save()."""
         d = np.load(path)
-        model = cls(int(d["input_dim"]), [int(h) for h in d["hidden_dims"]], bool(d["batch_norm"]))
+        model = cls(
+            int(d["input_dim"]),
+            [int(h) for h in d["hidden_dims"]],
+            bool(d["batch_norm"]),
+        )
         model.load_state_dict(d)
         return model
 

@@ -1,7 +1,7 @@
 """Cross validation and submission for the one hot MI pipeline.
 
-    python -m src.experiments
-    python run.py
+python -m src.experiments
+python run.py
 """
 
 import csv
@@ -21,8 +21,16 @@ RESULTS_PATH = "pipeline_experiments.csv"
 IMPORTANCE_PATH = "permutation_importance.csv"
 SUBMISSION_DIR = "submissions"
 METRICS = (
-    "pr_auc", "roc_auc", "f1", "precision", "recall", "accuracy",
-    "threshold", "n_features", "nonzero", "seconds",
+    "pr_auc",
+    "roc_auc",
+    "f1",
+    "precision",
+    "recall",
+    "accuracy",
+    "threshold",
+    "n_features",
+    "nonzero",
+    "seconds",
 )
 
 
@@ -55,7 +63,9 @@ def fit_and_tune(data, train_rows, y, cfg, rng):
     theta = model.fit_logistic(
         x_fit,
         positive[fit_rows],
-        model.positive_class_weights(positive[fit_rows], float(cfg["positive_class_cost"])),
+        model.positive_class_weights(
+            positive[fit_rows], float(cfg["positive_class_cost"])
+        ),
         float(cfg["l2_penalty"]),
         int(cfg["max_iters"]),
         rng,
@@ -76,14 +86,16 @@ def run_fold(data, train_rows, test_rows, y, cfg, rng):
     x_test = prep.apply(data, test_rows, state)
     test_scores = model.logistic_scores(x_test, theta)
     metrics = model.classification_scores(test_scores, y[test_rows], threshold)
-    metrics.update({
-        "pr_auc": model.average_precision(test_scores, positive[test_rows]),
-        "roc_auc": model.auc(test_scores, positive[test_rows]),
-        "threshold": threshold,
-        "n_features": x_test.shape[1],
-        "nonzero": int(np.count_nonzero(theta[1:])),
-        "seconds": time.time() - started,
-    })
+    metrics.update(
+        {
+            "pr_auc": model.average_precision(test_scores, positive[test_rows]),
+            "roc_auc": model.auc(test_scores, positive[test_rows]),
+            "threshold": threshold,
+            "n_features": x_test.shape[1],
+            "nonzero": int(np.count_nonzero(theta[1:])),
+            "seconds": time.time() - started,
+        }
+    )
     return metrics, (state, theta, x_test, test_scores)
 
 
@@ -100,12 +112,14 @@ def permutation_importance(fitted, positive, rng):
         columns = np.flatnonzero(sources == source)
         block = x_test[:, columns]
         shuffled = scores + (block[order] - block) @ weights[columns]
-        rows.append({
-            "column": prep.ensure_header()[0][source],
-            "n_columns": columns.size,
-            "pr_auc_drop": base_pr - model.average_precision(shuffled, positive),
-            "roc_auc_drop": base_roc - model.auc(shuffled, positive),
-        })
+        rows.append(
+            {
+                "column": prep.ensure_header()[0][source],
+                "n_columns": columns.size,
+                "pr_auc_drop": base_pr - model.average_precision(shuffled, positive),
+                "roc_auc_drop": base_roc - model.auc(shuffled, positive),
+            }
+        )
     rows.sort(key=lambda row: -row["pr_auc_drop"])
     return rows
 
@@ -118,10 +132,12 @@ def write_rows(rows, path):
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
         for row in rows:
-            writer.writerow({
-                key: ("%.5f" % value if isinstance(value, float) else value)
-                for key, value in row.items()
-            })
+            writer.writerow(
+                {
+                    key: ("%.5f" % value if isinstance(value, float) else value)
+                    for key, value in row.items()
+                }
+            )
 
 
 def submit():
@@ -168,7 +184,9 @@ def main():
     positive = y == 1
     data = prep.make_data(x, cfg)
     n_folds = int(cfg["n_folds"])
-    fold = prep.stratified_folds(positive, n_folds, np.random.default_rng(int(cfg["seed"])))
+    fold = prep.stratified_folds(
+        positive, n_folds, np.random.default_rng(int(cfg["seed"]))
+    )
     print(
         "%d rows, %d raw columns, %.2f%% positive, %d folds"
         % (x.shape[0], x.shape[1], 100.0 * positive.mean(), n_folds),
@@ -183,7 +201,13 @@ def main():
         results.append({"fold": index, **metrics})
         print(
             "fold %d  pr_auc %.4f  f1 %.4f  cols %d  %.0fs"
-            % (index, metrics["pr_auc"], metrics["f1"], metrics["n_features"], metrics["seconds"]),
+            % (
+                index,
+                metrics["pr_auc"],
+                metrics["f1"],
+                metrics["n_features"],
+                metrics["seconds"],
+            ),
             flush=True,
         )
         if index == 0:
@@ -193,8 +217,7 @@ def main():
     means = {key: float(np.mean([row[key] for row in results])) for key in METRICS}
     stds = {key: float(np.std([row[key] for row in results])) for key in METRICS}
     write_rows(
-        results
-        + [{"fold": "mean", **means}, {"fold": "std", **stds}],
+        results + [{"fold": "mean", **means}, {"fold": "std", **stds}],
         RESULTS_PATH,
     )
     print(

@@ -126,7 +126,9 @@ def mean_diff_by_class(x, y, col_mask=None, max_missing=0.3):
 
 def michd_rate(y, masks):
     """MICHD rate for each boolean row mask."""
-    return np.array([float(np.mean(y[mask] == 1)) if mask.any() else np.nan for mask in masks])
+    return np.array(
+        [float(np.mean(y[mask] == 1)) if mask.any() else np.nan for mask in masks]
+    )
 
 
 def plot_rate_bars(ax, labels, rates, title, overall=None):
@@ -156,7 +158,9 @@ def plot_hist_by_class(ax, values, y, bins, title, xlabel):
     """Overlapping density histograms of one column inside each class."""
     for label, name, color in ((-1, "no MICHD", "C0"), (1, "MICHD", "C3")):
         rows = (y == label) & np.isfinite(values)
-        ax.hist(values[rows], bins=bins, density=True, alpha=0.45, color=color, label=name)
+        ax.hist(
+            values[rows], bins=bins, density=True, alpha=0.45, color=color, label=name
+        )
     ax.set_xlabel(xlabel)
     ax.set_ylabel("density")
     ax.set_title(title)

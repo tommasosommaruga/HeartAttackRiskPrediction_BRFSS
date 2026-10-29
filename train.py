@@ -56,8 +56,18 @@ def evaluate(model, loss_fn, dataset, threshold=None):
     return metrics
 
 
-def train(model, optimizer, loss_fn, train_loader, epochs, val_ds=None, threshold=None,
-          patience=10, checkpoint=None, verbose=True):
+def train(
+    model,
+    optimizer,
+    loss_fn,
+    train_loader,
+    epochs,
+    val_ds=None,
+    threshold=None,
+    patience=10,
+    checkpoint=None,
+    verbose=True,
+):
     """Train for a number of epochs, evaluating on val_ds after each one.
 
     With a validation set, the weights with the lowest validation loss are
@@ -102,11 +112,16 @@ def train(model, optimizer, loss_fn, train_loader, epochs, val_ds=None, threshol
         model.load_state_dict(best_state)
         if verbose:
             best = history["val"][history["best_epoch"] - 1]
-            print("best epoch {}: val_loss={:.4f}, threshold={:.2f}, bal_acc={:.4f}, f1={:.4f}{}".format(
-                history["best_epoch"], best_loss, best["threshold"],
-                best["balanced_accuracy"], best["f1"],
-                ", weights saved to " + checkpoint if checkpoint else "",
-            ))
+            print(
+                "best epoch {}: val_loss={:.4f}, threshold={:.2f}, bal_acc={:.4f}, f1={:.4f}{}".format(
+                    history["best_epoch"],
+                    best_loss,
+                    best["threshold"],
+                    best["balanced_accuracy"],
+                    best["f1"],
+                    ", weights saved to " + checkpoint if checkpoint else "",
+                )
+            )
     elif checkpoint:
         model.save(checkpoint)
         if verbose:
@@ -128,15 +143,26 @@ def parse_args():
     p = argparse.ArgumentParser(description="Train the MLP on the project data.")
     # training
     p.add_argument("--epochs", type=int, default=10)
-    p.add_argument("--patience", type=int, default=10,
-                   help="stop after this many epochs without a better val loss")
-    p.add_argument("--checkpoint", default=os.path.join(CHECKPOINT_DIR, "mlp_best.npz"),
-                   help="where the best weights are saved")
+    p.add_argument(
+        "--patience",
+        type=int,
+        default=10,
+        help="stop after this many epochs without a better val loss",
+    )
+    p.add_argument(
+        "--checkpoint",
+        default=os.path.join(CHECKPOINT_DIR, "mlp_best.npz"),
+        help="where the best weights are saved",
+    )
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--batch-size", type=int, default=256)
     p.add_argument("--weight-decay", type=float, default=0.0)
-    p.add_argument("--pos-weight", type=parse_pos_weight, default="auto",
-                   help="weight of the positives in the BCE; 'auto' = n_negatives / n_positives (~10)")
+    p.add_argument(
+        "--pos-weight",
+        type=parse_pos_weight,
+        default="auto",
+        help="weight of the positives in the BCE; 'auto' = n_negatives / n_positives (~10)",
+    )
     # network
     p.add_argument("--hidden", type=int, nargs="+", default=[128, 64])
     p.add_argument("--no-batch-norm", action="store_true")
@@ -146,16 +172,24 @@ def parse_args():
     p.add_argument("--sub-sample", action="store_true", help="keep 1 row out of 50")
     p.add_argument("--seed", type=int, default=42)
     # prediction
-    p.add_argument("--threshold", type=float, default=None,
-                   help="decision threshold in (0, 1); by default the best F1 on validation")
-    p.add_argument("--final", action="store_true", help="train on all data, write the submission")
+    p.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help="decision threshold in (0, 1); by default the best F1 on validation",
+    )
+    p.add_argument(
+        "--final", action="store_true", help="train on all data, write the submission"
+    )
     p.add_argument("--submission", default="submissions/submission_mlp.csv")
     args = p.parse_args()
     if args.threshold is not None and not 0.0 < args.threshold < 1.0:
         p.error("--threshold must be in (0, 1)")
     if args.final and args.threshold is None:
-        p.error("--final has no validation set to pick the threshold on: pass --threshold, "
-                "e.g. the 'threshold' printed for the best epoch of a validation run")
+        p.error(
+            "--final has no validation set to pick the threshold on: pass --threshold, "
+            "e.g. the 'threshold' printed for the best epoch of a validation run"
+        )
     return args
 
 
@@ -167,18 +201,29 @@ def main():
     train_ds, val_ds, test_ds, test_ids = load_datasets(
         args.data, val_fraction, args.seed, args.sub_sample
     )
-    print("train: {} ({:.2%} positive), val: {} ({}), test: {}, features: {}".format(
-        len(train_ds), train_ds.y.mean(),
-        len(val_ds) if val_ds else 0,
-        "{:.2%} positive".format(val_ds.y.mean()) if val_ds else "-",
-        len(test_ds), train_ds.x.shape[1],
-    ))
+    print(
+        "train: {} ({:.2%} positive), val: {} ({}), test: {}, features: {}".format(
+            len(train_ds),
+            train_ds.y.mean(),
+            len(val_ds) if val_ds else 0,
+            "{:.2%} positive".format(val_ds.y.mean()) if val_ds else "-",
+            len(test_ds),
+            train_ds.x.shape[1],
+        )
+    )
 
     # 2) loader
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, seed=args.seed)
+    train_loader = DataLoader(
+        train_ds, batch_size=args.batch_size, shuffle=True, seed=args.seed
+    )
 
     # 3) model, loss, optimizer
-    model = MLP(train_ds.x.shape[1], args.hidden, batch_norm=not args.no_batch_norm, seed=args.seed)
+    model = MLP(
+        train_ds.x.shape[1],
+        args.hidden,
+        batch_norm=not args.no_batch_norm,
+        seed=args.seed,
+    )
     pos_weight = args.pos_weight
     if pos_weight == "auto":
         n_pos = train_ds.y.sum()
@@ -192,16 +237,25 @@ def main():
     if checkpoint_dir:
         os.makedirs(checkpoint_dir, exist_ok=True)
     history = train(
-        model, optimizer, loss_fn, train_loader, args.epochs, val_ds,
-        args.threshold, args.patience, args.checkpoint,
+        model,
+        optimizer,
+        loss_fn,
+        train_loader,
+        args.epochs,
+        val_ds,
+        args.threshold,
+        args.patience,
+        args.checkpoint,
     )
 
     if args.final:
         y_pred = model.predict_labels(test_ds.x, history["threshold"])
         create_csv_submission(test_ids, y_pred, args.submission)
-        print("saved {} ({} positive predictions, threshold {})".format(
-            args.submission, np.sum(y_pred == 1), history["threshold"]
-        ))
+        print(
+            "saved {} ({} positive predictions, threshold {})".format(
+                args.submission, np.sum(y_pred == 1), history["threshold"]
+            )
+        )
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 """One preprocessing path: drop survey/leak columns, one hot levels, MI top.
 
-    data = make_data(x, cfg)
-    state, x_fit = fit(data, fit_rows, y[fit_rows] == 1, cfg)
-    x_out = apply(data, other_rows, state)
+data = make_data(x, cfg)
+state, x_fit = fit(data, fit_rows, y[fit_rows] == 1, cfg)
+x_out = apply(data, other_rows, state)
 """
 
 import json
@@ -17,12 +17,46 @@ DATA_DIR = os.path.join(ROOT, "data", "dataset")
 CONFIG_PATH = os.path.join(ROOT, "config", "experiments.json")
 
 SURVEY_COLUMNS = (
-    "_STATE", "FMONTH", "IDATE", "IMONTH", "IDAY", "IYEAR", "DISPCODE", "SEQNO",
-    "_PSU", "CTELENUM", "PVTRESD1", "COLGHOUS", "STATERES", "CELLFON3", "LADULT",
-    "NUMADULT", "NUMMEN", "NUMWOMEN", "CTELNUM1", "CELLFON2", "CADULT", "PVTRESD2",
-    "CCLGHOUS", "CSTATE", "LANDLINE", "HHADULT", "NUMHHOL2", "NUMPHON2", "CPDEMO1",
-    "QSTVER", "QSTLANG", "MSCODE", "_STSTR", "_STRWT", "_RAWRAKE", "_WT2RAKE",
-    "_CLLCPWT", "_LLCPWT", "_DUALUSE", "_DUALCOR",
+    "_STATE",
+    "FMONTH",
+    "IDATE",
+    "IMONTH",
+    "IDAY",
+    "IYEAR",
+    "DISPCODE",
+    "SEQNO",
+    "_PSU",
+    "CTELENUM",
+    "PVTRESD1",
+    "COLGHOUS",
+    "STATERES",
+    "CELLFON3",
+    "LADULT",
+    "NUMADULT",
+    "NUMMEN",
+    "NUMWOMEN",
+    "CTELNUM1",
+    "CELLFON2",
+    "CADULT",
+    "PVTRESD2",
+    "CCLGHOUS",
+    "CSTATE",
+    "LANDLINE",
+    "HHADULT",
+    "NUMHHOL2",
+    "NUMPHON2",
+    "CPDEMO1",
+    "QSTVER",
+    "QSTLANG",
+    "MSCODE",
+    "_STSTR",
+    "_STRWT",
+    "_RAWRAKE",
+    "_WT2RAKE",
+    "_CLLCPWT",
+    "_LLCPWT",
+    "_DUALUSE",
+    "_DUALCOR",
 )
 LEAK_COLUMNS = ("HAREHAB1", "STREHAB1", "CVDASPRN", "ASPUNSAF")
 
@@ -188,7 +222,10 @@ def fit(data, rows, positive, cfg):
     x = data["x"]
     present, _rate = usable_columns(x, rows, data["columns"], data["eps"])
     min_count = max(1, int(round(float(cfg["min_level_share"]) * rows.size)))
-    levels = [fit_levels(x[rows, column], min_count, int(cfg["quantile_bins"])) for column in present]
+    levels = [
+        fit_levels(x[rows, column], min_count, int(cfg["quantile_bins"]))
+        for column in present
+    ]
     state = {"columns": present, "levels": levels}
     raw = _onehot_raw(x, rows, state)
     level_sources = np.repeat(present, [level["width"] for level in levels])
@@ -214,7 +251,9 @@ def fit(data, rows, positive, cfg):
 
 def apply(data, rows, state):
     """Apply a fitted state. Does not refit."""
-    matrix = _onehot_raw(data["x"], rows, state)[:, state["selected"]].astype(np.float32)
+    matrix = _onehot_raw(data["x"], rows, state)[:, state["selected"]].astype(
+        np.float32
+    )
     matrix -= state["means"].astype(np.float32)
     matrix /= state["scales"].astype(np.float32)
     return matrix
@@ -240,8 +279,12 @@ def load_raw(data_dir=DATA_DIR, cache=True):
     x_train, x_test, y_train, train_ids, test_ids = load_csv_data(data_dir)
     if cache:
         np.savez(
-            cache_file, x_train=x_train, x_test=x_test, y_train=y_train,
-            train_ids=train_ids, test_ids=test_ids,
+            cache_file,
+            x_train=x_train,
+            x_test=x_test,
+            y_train=y_train,
+            train_ids=train_ids,
+            test_ids=test_ids,
         )
     return x_train, x_test, y_train, train_ids, test_ids
 
@@ -268,7 +311,9 @@ def get_data(data_dir=DATA_DIR, cfg=None, val_fraction=0.1, seed=42, sub_sample=
     y01 = (y == 1).astype(float)
 
     if val_fraction > 0:
-        fit_rows, val_rows = stratified_split(y01, val_fraction, np.random.default_rng(seed))
+        fit_rows, val_rows = stratified_split(
+            y01, val_fraction, np.random.default_rng(seed)
+        )
     else:
         fit_rows, val_rows = np.arange(y01.size), None
 
