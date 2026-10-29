@@ -7,8 +7,8 @@ Only NumPy and Matplotlib are used.
 
 The main lesson from our runs is that **how features are built moves F1 much
 more than which linear model sits on top**. We keep one preprocessing path and
-compare a few solvers for reference. A neural net and a gradient boosted tree
-are planned; their scores are not in yet.
+compare a few solvers for reference. A small NumPy neural net is kept as an
+extra experiment (see Models).
 
 ## Layout
 
@@ -23,7 +23,11 @@ are planned; their scores are not in yet.
 | `src/experiments.py` | Five fold CV, permutation importance, submit. |
 | `src/eda.py` | Plots and missingness checks. |
 | `config/experiments.json` | Folds, seed, penalties, `top_onehot`. |
-| `latex-example-paper/report.tex` | Short report. |
+| `train.py` | Trains the NumPy MLP (not the submission); `python train.py --help`. |
+| `neural_net.py` | MLP layers: Linear → BatchNorm → ReLU. |
+| `loader.py` | Dataset and mini batch loader for the MLP. |
+| `util/` | Adam, weighted BCE loss, and metrics for the MLP. |
+| `report/` | Report PDF and LaTeX source. |
 
 ## Usage
 
@@ -59,7 +63,12 @@ The notebook compares three linear fits on the same prepared split: course
 logistic GD, mini batch SGD logistic, and course ridge. The submission uses
 weighted FISTA logistic with a small L2 penalty and a positive class cost of 2.
 The F1 cutoff is chosen on a held out slice. Five fold mean F1 is about 0.427
-on 300 columns. Neural net and gradient boosting results will be added later.
+on 300 columns.
+
+As an extra experiment, the NumPy MLP of `train.py` (hidden layers of 128 and
+64 units, BatchNorm, ReLU) reaches a higher training F1 than course logistic GD
+(0.445 vs 0.430) but a lower held out F1 on CV fold 0 (0.425 vs 0.429). The
+gain comes from the cleaned features, not from model capacity.
 
 ## Config knobs
 

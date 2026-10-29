@@ -13,7 +13,7 @@ import numpy as np
 from helpers import load_csv_data
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(ROOT, "dataset")
+DATA_DIR = os.path.join(ROOT, "data", "dataset")
 CONFIG_PATH = os.path.join(ROOT, "config", "experiments.json")
 
 SURVEY_COLUMNS = (
