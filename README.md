@@ -59,10 +59,17 @@ and ridge on the same matrix.
 
 ## Models
 
-The notebook compares three linear fits on the same prepared split: course
-logistic GD, mini batch SGD logistic, and course ridge. The submission uses
-weighted FISTA logistic with a small L2 penalty and a positive class cost of 2.
-The F1 cutoff is chosen on a held out slice. Five fold mean F1 is about 0.427
+All six course methods were compared on CV fold 0 in earlier experiments
+(Table I of the report). That comparison is not rerun here: `python run.py`
+only fits the submitted model, which gave our best AIcrowd F1 (0.439), and
+writes its predictions. The notebook does not rerun the comparison either. It
+runs three quick sanity checks on an 80/20 split (course logistic GD with 50
+steps, mini batch SGD logistic, course ridge with λ = 1e-4). It then runs the five fold CV of the submitted
+model and writes the same submission as `run.py`.
+
+The submitted model is weighted FISTA logistic with a small L2 penalty and a
+positive class cost of 2.
+Five fold mean F1 is about 0.427
 on 300 columns.
 
 As an extra experiment, the NumPy MLP of `train.py` (hidden layers of 128 and
